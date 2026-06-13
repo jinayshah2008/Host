@@ -1188,7 +1188,7 @@
   // Replace with your project's values from Supabase Dashboard -> Project Settings -> API
   const SUPABASE_URL = 'https://odbsvmcpypwlwqkakxyr.supabase.co';
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kYnN2bWNweXB3bHdxa2FreHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjU0OTMsImV4cCI6MjA5Njg0MTQ5M30.nlt9WuZyqFDm4eb0nuFgUpd2zwuTk643NuB8tGxLuuk';
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
   const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
   const landingView = document.getElementById('landing-view');
@@ -1255,8 +1255,8 @@
     if (!authUser) return null;
 
     const [{ data: profile }, { data: projects }] = await Promise.all([
-      supabase.from('profiles').select('plan').eq('id', authUser.id).single(),
-      supabase.from('projects').select('name, url, file_label').eq('user_id', authUser.id).order('created_at', { ascending: true })
+      sbClient.from('profiles').select('plan').eq('id', authUser.id).single(),
+      sbClient.from('projects').select('name, url, file_label').eq('user_id', authUser.id).order('created_at', { ascending: true })
     ]);
 
     return normalizeSession({
@@ -1277,10 +1277,10 @@
   }
 
   async function initAuth() {
-    const { data: { session } } = await supabase.auth.getSession();
+    const { data: { session } } = await sbClient.auth.getSession();
     if (session) applySession(await loadSessionFromSupabase(session.user));
 
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    sbClient.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         applySession(await loadSessionFromSupabase(session.user));
         if (pendingDestination === 'deploy') showDeployView();
@@ -1628,7 +1628,7 @@
     if (event.target.closest('[data-go-dashboard]')) showDashboardView();
 
     if (event.target.closest('[data-sign-out]')) {
-      supabase.auth.signOut();
+      sbClient.auth.signOut();
       // The onAuthStateChange listener clears currentSession and shows home.
     }
   });
@@ -1674,7 +1674,7 @@
     if (!currentSession) return;
     currentSession.plan = demoPlanSelect.value;
     renderDashboard();
-    await supabase.from('profiles').update({ plan: currentSession.plan }).eq('id', currentSession.userId);
+    await sbClient.from('profiles').update({ plan: currentSession.plan }).eq('id', currentSession.userId);
   });
 
   document.getElementById('close-customize').addEventListener('click', closeCustomize);
@@ -1752,8 +1752,8 @@
     authMessage.textContent = authMode === 'signup' ? 'Creating account...' : 'Signing in...';
 
     const { error } = authMode === 'signup'
-      ? await supabase.auth.signUp({ email, password, options: { data: { full_name: name } } })
-      : await supabase.auth.signInWithPassword({ email, password });
+      ? await sbClient.auth.signUp({ email, password, options: { data: { full_name: name } } })
+      : await sbClient.auth.signInWithPassword({ email, password });
 
     authSubmit.disabled = false;
 
@@ -1775,7 +1775,7 @@
   document.querySelectorAll('[data-provider]').forEach((button) => {
     button.addEventListener('click', async () => {
       const provider = button.dataset.provider;
-      const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await sbClient.auth.signInWithOAuth({
         provider,
         options: { redirectTo: window.location.origin + window.location.pathname }
       });
@@ -1794,7 +1794,7 @@
       authMessage.textContent = 'Enter your email above first, then click "Forgot password".';
       return;
     }
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const { error } = await sbClient.auth.resetPasswordForEmail(email);
     authMessage.style.color = error ? 'var(--rust)' : 'var(--teal)';
     authMessage.textContent = error ? error.message : 'Password reset email sent.';
   });
@@ -1857,7 +1857,7 @@
           fileLabel: `[${selectedFiles.length} file${selectedFiles.length === 1 ? '' : 's'}]`
         };
 
-        const { error } = await supabase.from('projects').insert({
+        const { error } = await sbClient.from('projects').insert({
           user_id: currentSession.userId,
           name: project.name,
           slug: project.url.split('.')[0],
