@@ -799,7 +799,7 @@
     *{scroll-behavior:auto!important;transition:none!important}
   }
 </style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
 <body>
 
@@ -1150,9 +1150,18 @@
         </div>
       </div>
 
+      <div class="field" id="otp-field" hidden>
+        <label for="auth-otp">6-digit code</label>
+        <input id="auth-otp" type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="one-time-code" placeholder="123456">
+      </div>
+
       <div class="form-meta" id="signin-meta">
         <label class="check-line"><input type="checkbox" id="remember-user" checked> Remember me</label>
         <button type="button" class="text-link" id="forgot-password">Forgot password?</button>
+      </div>
+      <div class="form-meta">
+        <button type="button" class="text-link" id="use-otp">Sign in with a one-time code instead</button>
+        <button type="button" class="text-link" id="use-password" hidden>Use password instead</button>
       </div>
 
       <button type="submit" class="auth-submit" id="auth-submit">Sign in</button>
@@ -1169,7 +1178,7 @@
           GitHub
         </button>
       </div>
-      <p class="demo-note">Demo mode: account and sign-in state stay only in this browser. Social buttons create a local preview session until Supabase is connected.</p>
+      <p class="demo-note">Your account, plan, and deployed sites are stored securely with Supabase.</p>
     </form>
   </div>
 </div>
@@ -1227,6 +1236,7 @@
   const successUrl = document.getElementById('success-url');
 
   let authMode = 'signin';
+  let otpStep = 'request';
   let pendingDestination = null;
   let selectedFiles = [];
   let currentSession = null;
