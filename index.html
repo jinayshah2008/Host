@@ -208,16 +208,57 @@
   .plans{
     display:grid;
     grid-template-columns:repeat(5,1fr);
-    gap:0;
-    overflow:hidden;
-    border:1px solid var(--line);
-    border-radius:10px;
-    background:rgba(22,26,34,.02);
+    gap:14px;
+    border:0;
+    border-radius:0;
+    background:transparent;
   }
-  .plan{position:relative;padding:28px 18px;border-left:1px solid var(--line)}
-  .plan:first-child{border-left:0}
-  .plan.featured{background:var(--ink);color:var(--paper)}
+  .plan{
+    position:relative;
+    padding:28px 18px;
+    border:1px solid var(--line);
+    border-radius:14px;
+    background:#fff;
+    transition:background .25s ease,box-shadow .25s ease;
+    z-index:1;
+    overflow:hidden;
+  }
+  .plan.featured{background:var(--cream);color:var(--ink);padding-top:0}
+  .plan-banner{
+    margin:0 -18px 22px;
+    padding:10px 18px;
+    background:linear-gradient(135deg,#a855f7,#7c3aed);
+    color:#fff;
+    text-align:center;
+    font-family:var(--mono);
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+  }
+  .plan.is-highlighted{
+    background:linear-gradient(135deg,rgba(255,255,255,.3) 30%,rgba(201,162,39,.7) 100%);
+    animation:planPulse 1.1s ease-in-out 2;
+  }
+  @keyframes planPulse{
+    0%,100%{background:linear-gradient(135deg,rgba(255,255,255,.3) 30%,rgba(201,162,39,.7) 100%)}
+    50%{background:linear-gradient(135deg,rgba(255,255,255,.45) 30%,rgba(201,162,39,.85) 100%)}
+  }
   .plan-name{margin-bottom:6px;font-family:var(--display);font-size:19px;font-weight:700}
+  /* Subtle per-tier accent bar across the top of each plan */
+  .plan::before{
+    content:'';
+    position:absolute;
+    top:0;left:0;right:0;
+    height:4px;
+    background:var(--line);
+  }
+  .plan[data-plan="free"]::before{background:var(--muted)}
+  .plan[data-plan="mini"]::before{background:var(--teal)}
+  .plan[data-plan="solo"]::before{background:linear-gradient(90deg,#a855f7,#7c3aed)}
+  .plan[data-plan="pro"]::before{background:var(--brass)}
+  .plan[data-plan="custom"]::before{background:var(--rust)}
+  .plan.featured::before{display:none}
   .plan-price{margin-bottom:4px;font-family:var(--mono);font-size:24px;font-weight:700}
   .plan-price span{font-size:13px;font-weight:400;opacity:.6}
   .plan-tag{
@@ -236,11 +277,10 @@
     padding:7px 0;
     border-top:1px solid var(--line);
   }
-  .plan.featured .plan-feats li{border-color:rgba(244,239,230,.12)}
+  .plan.featured .plan-feats li{border-color:var(--line)}
   .plan-feats li span:first-child{opacity:.75}
   .plan-feats li span:last-child{font-family:var(--mono);font-size:12.5px;font-weight:600;white-space:nowrap}
   .yes{color:var(--teal)}
-  .plan.featured .yes{color:var(--brass)}
   .no{opacity:.3}
   .plan-cta{
     display:block;
@@ -253,7 +293,8 @@
     font-size:13.5px;
     font-weight:600;
   }
-  .plan.featured .plan-cta{border-color:var(--brass);background:var(--brass);color:var(--ink)}
+  .plan.featured .plan-cta{border-color:#7c3aed;background:#7c3aed;color:#fff}
+  .plan.featured .plan-cta:hover{background:#6d28d9;border-color:#6d28d9}
   .plan:not(.featured) .plan-cta:hover{background:var(--ink);color:var(--paper)}
   footer{border-top:1px solid var(--line);padding:32px 24px;text-align:center;font-size:13px;opacity:.55}
 
@@ -454,6 +495,7 @@
     transition:border-color .15s,background .15s,transform .15s;
   }
   .drop-zone.drag-over{border-color:var(--teal);background:rgba(58,125,110,.09);transform:scale(1.005)}
+  .drop-zone.is-locked{opacity:.5;pointer-events:none;background:rgba(22,26,34,.04)}
   .upload-icon{
     display:grid;
     place-items:center;
@@ -481,6 +523,7 @@
     cursor:pointer;
   }
   .small-button.secondary{background:transparent;color:var(--ink)}
+  .small-button:disabled{opacity:.4;cursor:not-allowed}
   .limit-copy{margin-top:13px!important;font-family:var(--mono);font-size:10.5px!important;opacity:.75}
   .file-summary{
     display:flex;
@@ -557,6 +600,8 @@
   }
   .deploy-button:disabled{cursor:not-allowed;opacity:.4}
   .deploy-button:not(:disabled):hover{background:var(--teal)}
+  .deploy-button.is-upgrade{background:var(--brass);color:var(--ink)}
+  .deploy-button.is-upgrade:hover{background:var(--rust);color:var(--paper)}
   .deploy-status{min-height:19px;margin-top:8px;color:var(--muted);font-size:11.5px;text-align:center}
   .success-card{
     grid-column:1/-1;
@@ -585,11 +630,144 @@
   .success-url{display:block;margin-top:3px;color:var(--teal);font-family:var(--mono);font-size:13px;font-weight:700}
   .success-actions{display:flex;gap:8px}
 
+  /* Dashboard */
+  .dashboard-view{min-height:calc(100vh - 78px)}
+  .dashboard-shell{max-width:1080px;margin:0 auto;padding:52px 24px 84px}
+  .dashboard-heading{
+    display:flex;flex-direction:column;align-items:flex-start;
+    gap:14px;margin-bottom:32px;
+  }
+  .dashboard-heading h1{margin:5px 0 0;font-size:clamp(30px,4.5vw,46px)}
+  .dashboard-heading p{max-width:480px;color:var(--muted)}
+  .demo-plan-switch{
+    display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);
+    border-radius:7px;padding:8px 12px;font-size:12px;color:var(--muted);
+    font-family:var(--mono);background:#fff;max-width:100%;
+  }
+  .demo-plan-switch select{border:1px solid var(--line);border-radius:5px;padding:5px 8px;font-size:12px}
+
+  .ticket-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:48px 36px}
+
+  /* Empty project slot */
+  .ticket-slot{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+    min-height:160px;border:2px dashed var(--line);border-radius:14px;
+    color:var(--muted);background:transparent;cursor:pointer;width:100%;
+    font-family:var(--body);font-size:13px;text-align:center;padding:24px;
+    transition:border-color .18s,color .18s,background .18s;
+  }
+  .ticket-slot:hover{border-color:var(--brass);color:var(--ink);background:rgba(201,162,39,.05)}
+  .ticket-slot .slot-plus{font-size:32px;line-height:1;font-family:var(--display);font-weight:900;color:var(--brass)}
+
+  /* ── Site card ────────────────────────────────────────── */
+  .site-card{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    border:0;
+    border-radius:14px;
+    background:var(--ink);
+    color:var(--paper);
+    padding:24px 22px 22px;
+    text-align:left;
+    cursor:pointer;
+    width:100%;
+    box-shadow:0 16px 40px -18px rgba(22,26,34,.55);
+    transition:transform .2s cubic-bezier(.34,1.4,.64,1), box-shadow .22s ease;
+  }
+  .site-card:hover{
+    transform:translateY(-5px);
+    box-shadow:0 24px 50px -18px rgba(22,26,34,.6);
+  }
+  .site-card-top{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-bottom:16px;
+  }
+  .site-card .ticket-label{
+    font-family:var(--mono);font-size:10px;
+    letter-spacing:.2em;text-transform:uppercase;opacity:.45;
+  }
+  .live-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    border-radius:999px;
+    background:rgba(201,162,39,.16);
+    padding:5px 10px;
+    font-family:var(--mono);
+    font-size:10px;
+    font-weight:700;
+    letter-spacing:.14em;
+    color:var(--brass);
+  }
+  .live-badge::before{
+    content:'';
+    width:6px;height:6px;
+    border-radius:50%;
+    background:var(--brass);
+  }
+
+  .site-card .ticket-file{margin-bottom:16px;font-family:var(--mono);font-size:13px;opacity:.8}
+  .site-card .ticket-arrow{margin-bottom:6px;font-family:var(--mono);font-size:12px;opacity:.38}
+  .site-card .ticket-url{
+    color:var(--brass);font-family:var(--mono);font-size:16px;font-weight:700;
+    word-break:break-all;line-height:1.35;
+  }
+  .site-card-footer{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:18px;
+    padding-top:16px;
+    border-top:1px solid rgba(244,239,230,.12);
+  }
+  .site-card-action{
+    border:1.5px solid rgba(244,239,230,.35);
+    border-radius:6px;
+    background:transparent;
+    color:var(--paper);
+    padding:8px 14px;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+    transition:background .15s,border-color .15s;
+  }
+  .site-card-action:hover{background:rgba(244,239,230,.1);border-color:var(--paper)}
+
+  .ticket-feature-list{display:grid;gap:10px;padding:22px 32px 0}
+
+  .danger-zone{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:14px;
+    margin:22px 32px 30px;
+    padding-top:18px;
+    border-top:1px solid var(--line);
+  }
+  .danger-zone-copy strong{display:block;font-size:13px;color:var(--rust)}
+  .danger-zone-copy span{display:block;margin-top:3px;color:var(--muted);font-size:11.5px;max-width:280px}
+  .danger-button{
+    flex:0 0 auto;
+    border:1.5px solid var(--rust);
+    border-radius:6px;
+    background:transparent;
+    color:var(--rust);
+    padding:9px 14px;
+    font-size:12.5px;
+    font-weight:700;
+    cursor:pointer;
+    transition:background .15s,color .15s;
+  }
+  .danger-button:hover{background:var(--rust);color:#fff}
+  .danger-button.is-confirm{background:var(--rust);color:#fff}
+
   @media (max-width:880px){
     .plans{grid-template-columns:1fr 1fr}
-    .plan{border-top:1px solid var(--line);border-left:0}
-    .plan:nth-child(odd){border-right:1px solid var(--line)}
-    .plan:first-child,.plan:nth-child(2){border-top:0}
     .steps{grid-template-columns:1fr;gap:40px}
     .deploy-grid{grid-template-columns:1fr}
   }
@@ -604,7 +782,6 @@
     .ticket-stub::before,.ticket-stub::after{display:none}
     .stub-mark{transform:none;font-size:16px}
     .plans{grid-template-columns:1fr}
-    .plan{border-right:0!important}
     .modal-top{padding:28px 22px 0}
     .auth-tabs{margin:22px 22px 0}
     .auth-form{padding:20px 22px 24px}
@@ -615,6 +792,8 @@
     .success-card{grid-template-columns:auto 1fr}
     .success-actions{grid-column:1/-1}
     .success-actions .small-button{flex:1}
+    .dashboard-shell{padding:38px 18px 64px}
+    .ticket-grid{grid-template-columns:1fr}
   }
   @media (prefers-reduced-motion:reduce){
     *{scroll-behavior:auto!important;transition:none!important}
@@ -639,18 +818,18 @@
     <h1>Drop your HTML. <em>Get a link.</em> Done.</h1>
     <p class="sub">Upload a folder, get a live site at your own corner of vaultex.me - no server setup, no domain purchase, no waiting.</p>
 
-    <div class="ticket">
-      <div class="ticket-main">
-        <div class="ticket-label">Deposited</div>
-        <div class="ticket-file">[folder] portfolio.zip</div>
+    <div id="hero-ticket-wrap" hidden>
+      <div class="site-card" style="cursor:default;max-width:380px;margin:0 auto 8px">
+        <div class="site-card-top">
+          <div class="ticket-label">Deposited</div>
+          <div class="live-badge">Live</div>
+        </div>
+        <div class="ticket-file" id="hero-ticket-file">[1 file]</div>
         <div class="ticket-arrow">issued as &darr;</div>
-        <div class="ticket-url">rahul.vaultex.me</div>
+        <div class="ticket-url" id="hero-ticket-url">rahul.vaultex.me</div>
       </div>
-      <div class="ticket-stub">
-        <div class="stub-mark">LIVE</div>
-      </div>
+      <p class="hero-note">Free plan assigns a random address &middot; upgrade anytime to claim your own name</p>
     </div>
-    <p class="hero-note">Free plan assigns a random address &middot; upgrade anytime to claim your own name</p>
 
     <div class="cta-row">
       <button type="button" class="btn btn-primary" data-deploy-trigger>Deploy a site free</button>
@@ -689,7 +868,7 @@
         <h2>Plans that don't punish you for starting small</h2>
       </div>
       <div class="plans">
-        <div class="plan">
+        <div class="plan" data-plan="free">
           <div class="plan-name">Free</div>
           <div class="plan-price">&#8377;0</div>
           <div class="plan-tag">forever</div>
@@ -706,7 +885,7 @@
           <a href="#" class="plan-cta" data-deploy-trigger>Start free</a>
         </div>
 
-        <div class="plan">
+        <div class="plan" data-plan="mini">
           <div class="plan-name">Mini</div>
           <div class="plan-price">&#8377;59<span>/mo</span></div>
           <div class="plan-tag">for your own name</div>
@@ -723,7 +902,8 @@
           <a href="https://rzp.io/l/REPLACE-MINI-LINK" class="plan-cta">Choose Mini</a>
         </div>
 
-        <div class="plan featured">
+        <div class="plan featured" data-plan="solo">
+          <div class="plan-banner">Most popular &middot; our Solo plan</div>
           <div class="plan-name">Solo</div>
           <div class="plan-price">&#8377;199<span>/mo</span></div>
           <div class="plan-tag">most popular</div>
@@ -740,7 +920,7 @@
           <a href="https://rzp.io/l/REPLACE-SOLO-LINK" class="plan-cta">Choose Solo</a>
         </div>
 
-        <div class="plan">
+        <div class="plan" data-plan="pro">
           <div class="plan-name">Pro</div>
           <div class="plan-price">&#8377;499<span>/mo</span></div>
           <div class="plan-tag">for builders</div>
@@ -757,7 +937,7 @@
           <a href="https://rzp.io/l/REPLACE-PRO-LINK" class="plan-cta">Choose Pro</a>
         </div>
 
-        <div class="plan">
+        <div class="plan" data-plan="custom">
           <div class="plan-name">Custom</div>
           <div class="plan-price" style="font-size:18px">Let's talk</div>
           <div class="plan-tag">for teams</div>
@@ -885,11 +1065,53 @@
         <div class="success-actions">
           <button type="button" class="small-button" id="copy-url">Copy link</button>
           <button type="button" class="small-button secondary" id="new-deploy">New deploy</button>
+          <button type="button" class="small-button secondary" id="go-dashboard-from-success">View dashboard</button>
         </div>
       </section>
     </div>
   </div>
 </main>
+
+<main id="dashboard-view" class="dashboard-view" hidden>
+  <div class="dashboard-shell">
+    <div class="dashboard-heading">
+      <div>
+        <div class="eyebrow" style="margin-bottom:0">Your sites</div>
+        <h1>Dashboard</h1>
+        <p id="dashboard-pill" class="plan-pill">Free plan &middot; 0/1 projects</p>
+      </div>
+      <label class="demo-plan-switch">
+        Demo: simulate plan
+        <select id="demo-plan-select" aria-label="Simulate plan for testing">
+          <option value="free">Free (1)</option>
+          <option value="mini">Mini (2)</option>
+          <option value="solo">Solo (5)</option>
+          <option value="pro">Pro (15)</option>
+        </select>
+      </label>
+    </div>
+    <div id="ticket-grid" class="ticket-grid"></div>
+  </div>
+</main>
+
+<div class="modal" id="customize-modal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="customize-title">
+    <button type="button" class="modal-close" id="close-customize" aria-label="Close">&times;</button>
+    <div class="modal-top">
+      <div class="modal-kicker">Site settings</div>
+      <h2 class="modal-title" id="customize-title">Customize</h2>
+      <p class="modal-copy" id="customize-url"></p>
+    </div>
+    <div class="ticket-feature-list" id="customize-features"></div>
+    <div class="danger-zone">
+      <div class="danger-zone-copy">
+        <strong>Delete this site</strong>
+        <span>This removes the deployment and frees up a project slot. This can't be undone.</span>
+      </div>
+      <button type="button" class="danger-button" id="delete-site-button" data-step="confirm">Delete site</button>
+    </div>
+  </div>
+</div>
 
 <div class="modal" id="auth-modal" aria-hidden="true">
   <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="auth-title">
@@ -956,6 +1178,21 @@
   const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
   const landingView = document.getElementById('landing-view');
   const deployView = document.getElementById('deploy-view');
+  const dashboardView = document.getElementById('dashboard-view');
+  const ticketGrid = document.getElementById('ticket-grid');
+  const dashboardPill = document.getElementById('dashboard-pill');
+  const demoPlanSelect = document.getElementById('demo-plan-select');
+  const customizeModal = document.getElementById('customize-modal');
+
+  const PLAN_LIMITS = { free: 1, mini: 2, solo: 5, pro: 15, custom: 15 };
+  const PLAN_LABELS = { free: 'Free', mini: 'Mini', solo: 'Solo', pro: 'Pro', custom: 'Custom' };
+  const PLAN_ORDER = ['free', 'mini', 'solo', 'pro'];
+  const FEATURE_TIERS = {
+    free: ['Rename site', 'Basic visit analytics'],
+    mini: ['Custom address', 'QR code', 'Custom 404 page', 'Remove Vaultex banner'],
+    solo: ['Feedback mode', 'Password protection', 'Detailed link tracking'],
+    pro: ['Capture emails', 'In-browser file editor', 'API access']
+  };
   const authArea = document.getElementById('auth-area');
   const authModal = document.getElementById('auth-modal');
   const authForm = document.getElementById('auth-form');
@@ -987,19 +1224,28 @@
   let pendingDestination = null;
   let selectedFiles = [];
   let currentSession = readSession();
+  let currentCustomizeIndex = null;
 
   function readSession() {
     try {
-      return JSON.parse(localStorage.getItem(SESSION_KEY)) || null;
+      const session = JSON.parse(localStorage.getItem(SESSION_KEY)) || null;
+      return normalizeSession(session);
     } catch (error) {
       return null;
     }
   }
 
+  function normalizeSession(session) {
+    if (!session) return null;
+    if (!session.plan) session.plan = 'free';
+    if (!Array.isArray(session.projects)) session.projects = [];
+    return session;
+  }
+
   function saveSession(session, remember = true) {
-    currentSession = session;
+    currentSession = normalizeSession(session);
     try {
-      if (remember) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      if (remember) localStorage.setItem(SESSION_KEY, JSON.stringify(currentSession));
       else localStorage.removeItem(SESSION_KEY);
     } catch (error) {
       // The UI still works for the current tab if storage is unavailable.
@@ -1019,6 +1265,7 @@
     const email = escapeHtml(currentSession.email || 'demo@vaultex.me');
     const initial = escapeHtml((currentSession.name || currentSession.email || 'V').charAt(0).toUpperCase());
     authArea.innerHTML = `
+      <button type="button" class="nav-button" data-go-dashboard>Dashboard</button>
       <div class="user-chip">
         <span class="user-avatar">${initial}</span>
         <span class="user-email">${email}</span>
@@ -1069,6 +1316,7 @@
     closeAuth();
     authForm.reset();
     if (pendingDestination === 'deploy') showDeployView();
+    else if (pendingDestination === 'dashboard') showDashboardView();
     pendingDestination = null;
   }
 
@@ -1078,14 +1326,161 @@
       return;
     }
     landingView.hidden = true;
+    dashboardView.hidden = true;
     deployView.hidden = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+    updateDeployAvailability();
+  }
+
+  function updateDeployAvailability() {
+    if (!currentSession) return;
+    const plan = currentSession.plan || 'free';
+    const limit = PLAN_LIMITS[plan] || 1;
+    const projects = currentSession.projects || [];
+    const atLimit = projects.length >= limit;
+
+    dropZone.classList.toggle('is-locked', atLimit);
+    fileInput.disabled = atLimit;
+    folderInput.disabled = atLimit;
+    document.getElementById('choose-files').disabled = atLimit;
+    document.getElementById('choose-folder').disabled = atLimit;
+    dropZone.setAttribute('aria-disabled', atLimit ? 'true' : 'false');
+    dropZone.tabIndex = atLimit ? -1 : 0;
+
+    if (atLimit) {
+      deployButton.disabled = false;
+      deployButton.textContent = 'Upgrade to upload another site';
+      deployButton.classList.add('is-upgrade');
+      deployStatus.textContent = `Your ${PLAN_LABELS[plan] || 'Free'} plan already hosts ${projects.length} site${projects.length === 1 ? '' : 's'}. Upgrade to add more.`;
+    } else {
+      deployButton.classList.remove('is-upgrade');
+      renderFiles();
+    }
   }
 
   function showHome() {
     deployView.hidden = true;
+    dashboardView.hidden = true;
     landingView.hidden = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function goToPricing(tier) {
+    deployView.hidden = true;
+    dashboardView.hidden = true;
+    landingView.hidden = false;
+    const pricingSection = document.getElementById('pricing');
+    if (pricingSection) pricingSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    document.querySelectorAll('.plan').forEach((card) => card.classList.remove('is-highlighted'));
+    const plansGrid = document.querySelector('.plans');
+    if (tier) {
+      const target = document.querySelector(`.plan[data-plan="${tier}"]`);
+      if (target) {
+        if (plansGrid) plansGrid.classList.add('has-highlight');
+        target.classList.add('is-highlighted');
+        setTimeout(() => {
+          target.classList.remove('is-highlighted');
+          if (plansGrid) plansGrid.classList.remove('has-highlight');
+        }, 2200);
+      }
+    } else if (plansGrid) {
+      plansGrid.classList.remove('has-highlight');
+    }
+  }
+
+  function showDashboardView() {
+    if (!currentSession) {
+      openAuth('signin', 'dashboard');
+      return;
+    }
+    landingView.hidden = true;
+    deployView.hidden = true;
+    dashboardView.hidden = false;
+    demoPlanSelect.value = currentSession.plan || 'free';
+    renderDashboard();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function renderDashboard() {
+    if (!currentSession) return;
+    const plan = currentSession.plan || 'free';
+    const limit = PLAN_LIMITS[plan] || 1;
+    const projects = currentSession.projects || [];
+
+    dashboardPill.textContent = `${PLAN_LABELS[plan] || 'Free'} plan \u00b7 ${projects.length}/${limit} projects`;
+
+    let html = '';
+    projects.forEach((project, index) => {
+      html += `
+        <div class="site-card" data-project-index="${index}">
+          <div class="site-card-top">
+            <div class="ticket-label">Deposited</div>
+            <div class="live-badge">Live</div>
+          </div>
+          <div class="ticket-file">${escapeHtml(project.fileLabel || '[folder] site')}</div>
+          <div class="ticket-arrow">issued as &darr;</div>
+          <div class="ticket-url">${escapeHtml(project.url)}</div>
+          <div class="site-card-footer">
+            <button type="button" class="site-card-action" data-action="customize">Settings</button>
+            <button type="button" class="site-card-action" data-action="visit">Visit site</button>
+          </div>
+        </div>
+      `;
+    });
+
+    for (let i = projects.length; i < limit; i += 1) {
+      html += `
+        <button type="button" class="ticket-slot" data-action="deploy">
+          <span class="slot-plus">+</span>
+          <span>Deploy a new site</span>
+        </button>
+      `;
+    }
+
+    ticketGrid.innerHTML = html;
+  }
+
+  function openCustomize(project, plan, projectIndex) {
+    currentCustomizeIndex = projectIndex;
+    document.getElementById('customize-title').textContent = project.name || 'Untitled site';
+    document.getElementById('customize-url').textContent = `https://${project.url}`;
+
+    const deleteButton = document.getElementById('delete-site-button');
+    deleteButton.dataset.step = 'confirm';
+    deleteButton.textContent = 'Delete site';
+    deleteButton.classList.remove('is-confirm');
+
+    const planIndex = PLAN_ORDER.indexOf(plan);
+    let html = '';
+    PLAN_ORDER.forEach((tier, tierIndex) => {
+      const unlocked = planIndex >= tierIndex;
+      FEATURE_TIERS[tier].forEach((feature) => {
+        html += `
+          <div class="toggle-row">
+            <div class="toggle-copy">
+              <strong>${escapeHtml(feature)}</strong>
+              <span>${unlocked ? 'Available on your plan' : `Upgrade to ${PLAN_LABELS[tier]} to unlock`}</span>
+            </div>
+            ${unlocked
+              ? '<span style="color:var(--teal);font-weight:700;font-size:18px">&#10003;</span>'
+              : `<button type="button" class="text-link" data-go-pricing data-tier="${tier}">Upgrade</button>`}
+          </div>
+        `;
+      });
+    });
+
+    document.getElementById('customize-features').innerHTML = html;
+    customizeModal.classList.add('is-open');
+    customizeModal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeCustomize() {
+    customizeModal.classList.remove('is-open');
+    customizeModal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+    currentCustomizeIndex = null;
   }
 
   function escapeHtml(value) {
@@ -1116,6 +1511,12 @@
   }
 
   function handleFiles(files) {
+    if (currentSession) {
+      const plan = currentSession.plan || 'free';
+      const limit = PLAN_LIMITS[plan] || 1;
+      const projects = currentSession.projects || [];
+      if (projects.length >= limit) return;
+    }
     selectedFiles = Array.from(files || []);
     renderFiles();
   }
@@ -1179,17 +1580,20 @@
     document.getElementById('public-site').checked = true;
     successCard.hidden = true;
     refreshSiteUrl();
-    renderFiles();
+    updateDeployAvailability();
   }
 
   authArea.addEventListener('click', (event) => {
     const authTrigger = event.target.closest('[data-open-auth]');
     if (authTrigger) openAuth(authTrigger.dataset.openAuth);
 
+    if (event.target.closest('[data-go-dashboard]')) showDashboardView();
+
     if (event.target.closest('[data-sign-out]')) {
       currentSession = null;
       try { localStorage.removeItem(SESSION_KEY); } catch (error) {}
       renderAuthArea();
+      renderHeroTicket();
       showHome();
     }
   });
@@ -1206,8 +1610,65 @@
   document.querySelectorAll('[data-home-link]').forEach((link) => {
     link.addEventListener('click', () => {
       deployView.hidden = true;
+      dashboardView.hidden = true;
       landingView.hidden = false;
     });
+  });
+
+  ticketGrid.addEventListener('click', (event) => {
+    const deploySlot = event.target.closest('[data-action="deploy"]');
+    if (deploySlot) {
+      showDeployView();
+      return;
+    }
+
+    const card = event.target.closest('.site-card');
+    if (!card) return;
+    const projectIndex = Number(card.dataset.projectIndex);
+    const project = (currentSession.projects || [])[projectIndex];
+    if (!project) return;
+
+    if (event.target.closest('[data-action="visit"]')) {
+      window.open(`https://${project.url}`, '_blank', 'noopener');
+    } else if (event.target.closest('[data-action="customize"]')) {
+      openCustomize(project, currentSession.plan || 'free', projectIndex);
+    }
+  });
+
+  demoPlanSelect.addEventListener('change', () => {
+    if (!currentSession) return;
+    currentSession.plan = demoPlanSelect.value;
+    saveSession(currentSession, true);
+    renderDashboard();
+  });
+
+  document.getElementById('close-customize').addEventListener('click', closeCustomize);
+  customizeModal.addEventListener('click', (event) => {
+    if (event.target === customizeModal) closeCustomize();
+    if (event.target.closest('[data-close-customize]')) closeCustomize();
+    if (event.target.closest('[data-go-pricing]')) {
+      const tier = event.target.closest('[data-go-pricing]').dataset.tier;
+      closeCustomize();
+      goToPricing(tier);
+    }
+  });
+
+  document.getElementById('delete-site-button').addEventListener('click', (event) => {
+    const button = event.currentTarget;
+    if (button.dataset.step === 'confirm') {
+      button.dataset.step = 'final';
+      button.textContent = 'Click again to confirm';
+      button.classList.add('is-confirm');
+      return;
+    }
+
+    if (currentCustomizeIndex === null || !currentSession.projects) return;
+    currentSession.projects.splice(currentCustomizeIndex, 1);
+    saveSession(currentSession, true);
+    closeCustomize();
+    renderDashboard();
+    renderHeroTicket();
+    if (!deployView.hidden) updateDeployAvailability();
   });
 
   document.getElementById('docs-link').addEventListener('click', (event) => {
@@ -1309,6 +1770,10 @@
   document.getElementById('refresh-slug').addEventListener('click', refreshSiteUrl);
 
   deployButton.addEventListener('click', () => {
+    if (deployButton.classList.contains('is-upgrade')) {
+      goToPricing('mini');
+      return;
+    }
     if (!selectedFiles.length || deployButton.disabled) return;
     deployButton.disabled = true;
     deployButton.textContent = 'Deploying...';
@@ -1321,8 +1786,24 @@
       successUrl.textContent = `https://${siteUrl.value}`;
       successCard.hidden = false;
       successCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+      const plan = currentSession.plan || 'free';
+      const limit = PLAN_LIMITS[plan] || 1;
+      currentSession.projects = currentSession.projects || [];
+      if (currentSession.projects.length < limit) {
+        currentSession.projects.push({
+          name: document.getElementById('site-name').value || 'Untitled site',
+          url: siteUrl.value,
+          fileLabel: `[${selectedFiles.length} file${selectedFiles.length === 1 ? '' : 's'}]`
+        });
+        saveSession(currentSession, true);
+        renderHeroTicket();
+        updateDeployAvailability();
+      }
     }, 1100);
   });
+
+  document.getElementById('go-dashboard-from-success').addEventListener('click', showDashboardView);
 
   document.getElementById('copy-url').addEventListener('click', async (event) => {
     const button = event.currentTarget;
@@ -1337,9 +1818,23 @@
 
   document.getElementById('new-deploy').addEventListener('click', resetDeployForm);
 
+  function renderHeroTicket() {
+    const wrap = document.getElementById('hero-ticket-wrap');
+    const projects = currentSession && currentSession.projects;
+    if (!projects || projects.length === 0) {
+      wrap.hidden = true;
+      return;
+    }
+    const latest = projects[projects.length - 1];
+    document.getElementById('hero-ticket-file').textContent = latest.fileLabel || '[folder] site';
+    document.getElementById('hero-ticket-url').textContent = latest.url;
+    wrap.hidden = false;
+  }
+
   refreshSiteUrl();
   renderFiles();
   renderAuthArea();
+  renderHeroTicket();
 </script>
 </body>
 </html>
