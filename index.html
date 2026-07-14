@@ -20,6 +20,11 @@
     <a href="#pricing" data-home-link>Pricing</a>
     <a href="#" id="docs-link">Docs</a>
   </div>
+  <div class="theme-switch" role="group" aria-label="Theme">
+    <button type="button" class="theme-chip" data-theme-option="blue">Bluish</button>
+    <button type="button" class="theme-chip" data-theme-option="dark">Dark</button>
+    <button type="button" class="theme-chip" data-theme-option="white">White</button>
+  </div>
   <div id="auth-area" class="auth-actions"></div>
 </nav>
 
@@ -389,6 +394,29 @@
         </button>
       </div>
       <p class="demo-note">Your account, plan, and deployed sites are stored securely with Supabase.</p>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="backend-modal" aria-hidden="true">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="backend-title">
+    <button type="button" class="modal-close" id="close-backend" aria-label="Close">&times;</button>
+    <div class="modal-top">
+      <div class="modal-kicker">Deployment setup</div>
+      <h2 class="modal-title" id="backend-title">Connect Supabase</h2>
+      <p class="modal-copy">Add your project URL and anon key to enable auth, uploads, and dashboard persistence.</p>
+    </div>
+    <form class="auth-form" id="backend-form" novalidate>
+      <div class="field">
+        <label for="backend-url">Supabase URL</label>
+        <input id="backend-url" type="url" placeholder="https://your-project.supabase.co" required>
+      </div>
+      <div class="field">
+        <label for="backend-key">Supabase anon key</label>
+        <input id="backend-key" type="text" placeholder="eyJ..." required>
+      </div>
+      <button type="submit" class="auth-submit">Save backend config</button>
+      <p class="form-message" id="backend-message" role="status"></p>
     </form>
   </div>
 </div>

@@ -1,9 +1,13 @@
 
   // --- Supabase setup ---
   // Replace with your project's values from Supabase Dashboard -> Project Settings -> API
+  const BACKEND_STORAGE_KEY = 'vaultex.backendConfig';
+  const THEME_STORAGE_KEY = 'vaultex.theme';
   const SUPABASE_URL = 'https://odbsvmcpypwlwqkakxyr.supabase.co';
+  const DEFAULT_BACKEND_CONFIG = { url: SUPABASE_URL };
   const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9kYnN2bWNweXB3bHdxa2FreHlyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEyNjU0OTMsImV4cCI6MjA5Njg0MTQ5M30.nlt9WuZyqFDm4eb0nuFgUpd2zwuTk643NuB8tGxLuuk';
-  const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let sbClient = null;
+  let authStateSubscription = null;
 
   const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
   const STORAGE_BUCKET = 'sites';
@@ -14,6 +18,12 @@
   const dashboardPill = document.getElementById('dashboard-pill');
   const demoPlanSelect = document.getElementById('demo-plan-select');
   const customizeModal = document.getElementById('customize-modal');
+  const backendModal = document.getElementById('backend-modal');
+  const backendForm = document.getElementById('backend-form');
+  const backendMessage = document.getElementById('backend-message');
+  const backendUrlInput = document.getElementById('backend-url');
+  const backendKeyInput = document.getElementById('backend-key');
+  const themeOptions = document.querySelectorAll('[data-theme-option]');
 
   const PLAN_LIMITS = { free: 1, mini: 2, solo: 5, pro: 15, custom: 15 };
   const PLAN_LABELS = { free: 'Free', mini: 'Mini', solo: 'Solo', pro: 'Pro', custom: 'Custom' };
@@ -57,6 +67,76 @@
   let selectedFiles = [];
   let currentSession = null;
   let currentCustomizeIndex = null;
+  let backendConfig = null;
+
+  function getStoredBackendConfig() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(BACKEND_STORAGE_KEY) || '{}');
+      return {
+        url: String(parsed.url || DEFAULT_BACKEND_CONFIG.url || '').trim(),
+        anonKey: String(parsed.anonKey || SUPABASE_ANON_KEY || '').trim()
+      };
+    } catch (_error) {
+      return {
+        url: String(DEFAULT_BACKEND_CONFIG.url || '').trim(),
+        anonKey: String(SUPABASE_ANON_KEY || '').trim()
+      };
+    }
+  }
+
+  function isBackendReady(config) {
+    return Boolean(
+      config
+      && /^https?:\/\//i.test(config.url)
+      && config.anonKey
+      && !config.anonKey.includes('*')
+    );
+  }
+
+  function setTheme(theme) {
+    const normalized = ['blue', 'dark', 'white'].includes(theme) ? theme : 'blue';
+    document.body.setAttribute('data-theme', normalized);
+    localStorage.setItem(THEME_STORAGE_KEY, normalized);
+    themeOptions.forEach((button) => {
+      button.classList.toggle('is-active', button.dataset.themeOption === normalized);
+    });
+  }
+
+  function openBackendModal(message = '') {
+    backendMessage.textContent = message;
+    backendMessage.style.color = message ? 'var(--rust)' : '';
+    const current = backendConfig || getStoredBackendConfig();
+    backendUrlInput.value = current.url || DEFAULT_BACKEND_CONFIG.url || '';
+    backendKeyInput.value = current.anonKey || '';
+    backendModal.classList.add('is-open');
+    backendModal.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('modal-open');
+  }
+
+  function closeBackendModal() {
+    backendModal.classList.remove('is-open');
+    backendModal.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('modal-open');
+    backendMessage.textContent = '';
+  }
+
+  function bootBackendClient() {
+    const stored = getStoredBackendConfig();
+    backendConfig = stored;
+    if (!isBackendReady(stored)) {
+      sbClient = null;
+      return false;
+    }
+
+    sbClient = window.supabase.createClient(stored.url, stored.anonKey);
+    return true;
+  }
+
+  function requireBackendReady(message) {
+    if (sbClient) return true;
+    openBackendModal(message || 'Add your Supabase details first to continue.');
+    return false;
+  }
 
   function normalizeSession(session) {
     if (!session) return null;
@@ -107,6 +187,46 @@
     if (project.hostingUrl) return project.hostingUrl;
     if (isAbsoluteUrl(project.url)) return project.url;
     return `https://${project.url}`;
+  }
+
+  function injectBaseHref(html, baseHref) {
+    const baseTag = `<base href="${escapeHtml(baseHref)}">`;
+    if (/<base\b/i.test(html)) return html;
+    if (/<head\b[^>]*>/i.test(html)) {
+      return html.replace(/<head\b([^>]*)>/i, `<head$1>${baseTag}`);
+    }
+    return `<!doctype html><html><head>${baseTag}</head><body>${html}</body></html>`;
+  }
+
+  async function openRenderedProjectUrl(project) {
+    const url = getProjectVisitUrl(project);
+    const shouldRender = Boolean(project.hostingUrl || project.storagePrefix);
+    if (!shouldRender) {
+      window.open(url, '_blank');
+      return;
+    }
+
+    const previewWindow = window.open('', '_blank');
+    if (!previewWindow) {
+      window.open(url, '_blank');
+      return;
+    }
+
+    previewWindow.document.write('<!doctype html><html><body style="font-family:system-ui,sans-serif;padding:24px">Loading site preview...</body></html>');
+    previewWindow.document.close();
+
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Preview fetch failed (${response.status})`);
+      const html = await response.text();
+      const baseHref = new URL('.', url).href;
+      previewWindow.document.open();
+      previewWindow.document.write(injectBaseHref(html, baseHref));
+      previewWindow.document.close();
+    } catch (error) {
+      console.warn('Falling back to the direct site URL.', error);
+      previewWindow.location.href = url;
+    }
   }
 
   function projectFromRow(row, userId) {
@@ -177,10 +297,21 @@
   }
 
   async function initAuth() {
+    if (!sbClient) {
+      currentSession = null;
+      renderAuthArea();
+      renderHeroTicket();
+      return;
+    }
+
+    if (authStateSubscription && typeof authStateSubscription.unsubscribe === 'function') {
+      authStateSubscription.unsubscribe();
+    }
+
     const { data: { session } } = await sbClient.auth.getSession();
     if (session) applySession(await loadSessionFromSupabase(session.user));
 
-    sbClient.auth.onAuthStateChange(async (_event, session) => {
+    const { data } = sbClient.auth.onAuthStateChange(async (_event, session) => {
       if (session) {
         applySession(await loadSessionFromSupabase(session.user));
         if (pendingDestination === 'deploy') showDeployView();
@@ -193,9 +324,17 @@
         showHome();
       }
     });
+    authStateSubscription = data && data.subscription;
   }
 
   function renderAuthArea() {
+    if (!sbClient) {
+      authArea.innerHTML = `
+        <button type="button" class="nav-button" data-open-backend>Setup backend</button>
+      `;
+      return;
+    }
+
     if (!currentSession) {
       authArea.innerHTML = `
         <button type="button" class="nav-button" data-open-auth="signin">Sign in</button>
@@ -259,6 +398,7 @@
   }
 
   function showDeployView() {
+    if (!requireBackendReady('Connect Supabase before deploying sites.')) return;
     if (!currentSession) {
       openAuth('signup', 'deploy');
       return;
@@ -328,6 +468,7 @@
   }
 
   function showDashboardView() {
+    if (!requireBackendReady('Connect Supabase before opening your dashboard.')) return;
     if (!currentSession) {
       openAuth('signin', 'dashboard');
       return;
@@ -744,13 +885,25 @@
   }
 
   authArea.addEventListener('click', async (event) => {
-    const authTrigger = event.target.closest('[data-open-auth]');
-    if (authTrigger) openAuth(authTrigger.dataset.openAuth);
+    if (event.target.closest('[data-open-backend]')) {
+      openBackendModal();
+      return;
+    }
 
-    if (event.target.closest('[data-go-dashboard]')) showDashboardView();
+    const authTrigger = event.target.closest('[data-open-auth]');
+    if (authTrigger) {
+      if (!requireBackendReady('Connect Supabase before signing in.')) return;
+      openAuth(authTrigger.dataset.openAuth);
+    }
+
+    if (event.target.closest('[data-go-dashboard]')) {
+      showDashboardView();
+      return;
+    }
 
     const signOutButton = event.target.closest('[data-sign-out]');
     if (signOutButton) {
+      if (!sbClient) return;
       signOutButton.disabled = true;
       signOutButton.textContent = 'Signing out...';
 
@@ -808,14 +961,14 @@
     if (!project) return;
 
     if (event.target.closest('[data-action="visit"]')) {
-      window.open(getProjectVisitUrl(project), '_blank', 'noopener');
+      openRenderedProjectUrl(project);
     } else if (event.target.closest('[data-action="customize"]')) {
       openCustomize(project, currentSession.plan || 'free', projectIndex);
     }
   });
 
   demoPlanSelect.addEventListener('change', async () => {
-    if (!currentSession) return;
+    if (!currentSession || !sbClient) return;
     currentSession.plan = demoPlanSelect.value;
     renderDashboard();
     await sbClient.from('profiles').update({ plan: currentSession.plan }).eq('id', currentSession.userId);
@@ -887,9 +1040,11 @@
   });
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && authModal.classList.contains('is-open')) closeAuth();
+    if (event.key === 'Escape' && backendModal.classList.contains('is-open')) closeBackendModal();
   });
 
   authForm.addEventListener('submit', async (event) => {
+    if (!requireBackendReady('Connect Supabase before signing in.')) return;
     event.preventDefault();
     const name = document.getElementById('auth-name').value.trim();
     const email = document.getElementById('auth-email').value.trim();
@@ -940,6 +1095,7 @@
 
   document.querySelectorAll('[data-provider]').forEach((button) => {
     button.addEventListener('click', async () => {
+      if (!requireBackendReady('Connect Supabase before using social login.')) return;
       const provider = button.dataset.provider;
       const { error } = await sbClient.auth.signInWithOAuth({
         provider,
@@ -954,6 +1110,7 @@
   });
 
   document.getElementById('forgot-password').addEventListener('click', async () => {
+    if (!requireBackendReady('Connect Supabase before resetting passwords.')) return;
     const email = document.getElementById('auth-email').value.trim();
     if (!email || !email.includes('@')) {
       authMessage.style.color = 'var(--rust)';
@@ -997,6 +1154,7 @@
   document.getElementById('refresh-slug').addEventListener('click', refreshSiteUrl);
 
   deployButton.addEventListener('click', async () => {
+    if (!requireBackendReady('Connect Supabase before deploying sites.')) return;
     if (deployButton.classList.contains('is-upgrade')) {
       goToPricing('mini');
       return;
@@ -1068,6 +1226,41 @@
 
   document.getElementById('new-deploy').addEventListener('click', resetDeployForm);
 
+  themeOptions.forEach((button) => {
+    button.addEventListener('click', () => {
+      setTheme(button.dataset.themeOption);
+    });
+  });
+
+  document.getElementById('close-backend').addEventListener('click', closeBackendModal);
+  backendModal.addEventListener('click', (event) => {
+    if (event.target === backendModal) closeBackendModal();
+  });
+
+  backendForm.addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const url = backendUrlInput.value.trim();
+    const anonKey = backendKeyInput.value.trim();
+    if (!/^https?:\/\//i.test(url)) {
+      backendMessage.style.color = 'var(--rust)';
+      backendMessage.textContent = 'Use a valid Supabase URL.';
+      return;
+    }
+    if (!anonKey || anonKey.includes('*')) {
+      backendMessage.style.color = 'var(--rust)';
+      backendMessage.textContent = 'Paste your real Supabase anon key.';
+      return;
+    }
+
+    localStorage.setItem(BACKEND_STORAGE_KEY, JSON.stringify({ url, anonKey }));
+    backendConfig = { url, anonKey };
+    sbClient = window.supabase.createClient(url, anonKey);
+    backendMessage.style.color = 'var(--teal)';
+    backendMessage.textContent = 'Saved. Loading your account...';
+    await initAuth();
+    closeBackendModal();
+  });
+
   function renderHeroTicket() {
     const wrap = document.getElementById('hero-ticket-wrap');
     const projects = currentSession && currentSession.projects;
@@ -1081,8 +1274,11 @@
     wrap.hidden = false;
   }
 
+  setTheme(localStorage.getItem(THEME_STORAGE_KEY) || 'blue');
+  bootBackendClient();
   refreshSiteUrl();
   renderFiles();
   renderAuthArea();
   renderHeroTicket();
   initAuth();
+  if (!sbClient) openBackendModal('Connect Supabase to enable login and deployment.');
