@@ -189,6 +189,46 @@
     return `https://${project.url}`;
   }
 
+  function injectBaseHref(html, baseHref) {
+    const baseTag = `<base href="${escapeHtml(baseHref)}">`;
+    if (/<base\b/i.test(html)) return html;
+    if (/<head\b[^>]*>/i.test(html)) {
+      return html.replace(/<head\b([^>]*)>/i, `<head$1>${baseTag}`);
+    }
+    return `<!doctype html><html><head>${baseTag}</head><body>${html}</body></html>`;
+  }
+
+  async function openRenderedProjectUrl(project) {
+    const url = getProjectVisitUrl(project);
+    const shouldRender = Boolean(project.hostingUrl || project.storagePrefix);
+    if (!shouldRender) {
+      window.open(url, '_blank');
+      return;
+    }
+
+    const previewWindow = window.open('', '_blank');
+    if (!previewWindow) {
+      window.open(url, '_blank');
+      return;
+    }
+
+    previewWindow.document.write('<!doctype html><html><body style="font-family:system-ui,sans-serif;padding:24px">Loading site preview...</body></html>');
+    previewWindow.document.close();
+
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (!response.ok) throw new Error(`Preview fetch failed (${response.status})`);
+      const html = await response.text();
+      const baseHref = new URL('.', url).href;
+      previewWindow.document.open();
+      previewWindow.document.write(injectBaseHref(html, baseHref));
+      previewWindow.document.close();
+    } catch (error) {
+      console.warn('Falling back to the direct site URL.', error);
+      previewWindow.location.href = url;
+    }
+  }
+
   function projectFromRow(row, userId) {
     const slug = row.slug || extractSlugFromUrl(row.url);
     const storagePrefix = row.storage_prefix || (slug ? `${userId}/${slug}` : '');
@@ -921,7 +961,7 @@
     if (!project) return;
 
     if (event.target.closest('[data-action="visit"]')) {
-      window.open(getProjectVisitUrl(project), '_blank', 'noopener');
+      openRenderedProjectUrl(project);
     } else if (event.target.closest('[data-action="customize"]')) {
       openCustomize(project, currentSession.plan || 'free', projectIndex);
     }
